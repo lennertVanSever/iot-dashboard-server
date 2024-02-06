@@ -6,9 +6,9 @@ const setupMqttClient = require('./mqttClient');
 const setupRoutes = require('./routes');
 const cors = require('cors');
 
-app.use(cors())
 
 const app = express();
+app.use(cors())
 const server = http.createServer(app);
 const io = socketIo(server);
 
