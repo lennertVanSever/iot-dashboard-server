@@ -30,6 +30,27 @@ async function insertRecordFaunaDB(record, callback) {
   }
 }
 
+async function insertAlertFaunaDB(record) {
+  try {
+    // Assume the sensorId is part of the record.data; adjust as necessary
+    const sensorId = `${record.data.location}-${record.data.device_name}`;
+    const alertRecord = {
+      data: {
+        sensorId: sensorId,
+        timestamp: record.timestamp,
+        problemId: "LOW_BATTERY_VOLTAGE",
+      },
+    };
+    const insertResult = await faunaClient.query(
+      q.Create(q.Collection("alerts"), alertRecord)
+    );
+    console.log("FaunaDB Alert Insert Result:", insertResult);
+  } catch (faunaError) {
+    console.error("FaunaDB Alert Insert Error:", faunaError);
+  }
+}
+
 module.exports = {
   insertRecordFaunaDB,
+  insertAlertFaunaDB,
 };

@@ -65,6 +65,28 @@ function setupRoutes(app) {
       res.status(500).send("Error resetting data");
     }
   });
+  app.get("/alerts", async (req, res) => {
+    try {
+      const results = await faunaClient.query(
+        q.Map(
+          q.Paginate(q.Documents(q.Collection("alerts"))),
+          q.Lambda("ref", q.Get(q.Var("ref")))
+        )
+      );
+      // Transform the results for the response
+      const transformedResults = results.data.map((doc) => {
+        const timestamp = new Date(doc.ts / 1000).toISOString();
+        return {
+          timestamp, // Keeping the timestamp in ISO format for consistency
+          data: doc.data, // Contains the alert data, including sensorId and message
+        };
+      });
+      res.json(transformedResults);
+    } catch (error) {
+      console.error("Error querying FaunaDB for alerts:", error);
+      res.status(500).send("Error querying alerts");
+    }
+  });
 }
 
 module.exports = setupRoutes;

@@ -1,5 +1,5 @@
 const mqtt = require("mqtt");
-const { insertRecordFaunaDB } = require("./dataManager");
+const { insertRecordFaunaDB, insertAlertFaunaDB } = require("./dataManager");
 
 function setupMqttClient(io) {
   const client = mqtt.connect("mqtt://broker.emqx.io");
@@ -25,6 +25,9 @@ function setupMqttClient(io) {
     insertRecordFaunaDB(record, () => {
       io.emit("sensorData", record);
     });
+    if (record.data.battery_voltage < 3.8) {
+      insertAlertFaunaDB(record);
+    }
   });
 
   client.on("error", (err) => {
