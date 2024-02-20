@@ -28,23 +28,38 @@ function setupRoutes(app) {
   app.get("/data/delete", async (req, res) => {
     try {
       // Fetch all document references from the 'sensors' collection
-      const documents = await faunaClient.query(
+      let documents = await faunaClient.query(
         q.Map(
-          q.Paginate(q.Documents(q.Collection("sensors"))),
+          q.Paginate(q.Documents(q.Collection("sensors")), { size: 100000 }), // Adjust size as needed, within FaunaDB limits
           q.Lambda("ref", q.Var("ref"))
         )
       );
 
-      // Delete all fetched documents
-      const deletionResults = await Promise.all(
+      // Delete all fetched documents, handling each promise's result
+      const deletionResults = await Promise.allSettled(
         documents.data.map((docRef) => faunaClient.query(q.Delete(docRef)))
       );
 
-      console.log(
-        "All documents in `sensors` collection have been deleted",
-        deletionResults
+      // Filter out successful deletions and errors
+      const successfulDeletions = deletionResults.filter(
+        (result) => result.status === "fulfilled"
       );
-      res.status(200).send("All data has been reset.");
+      const errors = deletionResults.filter(
+        (result) => result.status === "rejected"
+      );
+
+      console.log(
+        `Successfully deleted documents: ${successfulDeletions.length}`
+      );
+      if (errors.length > 0) {
+        console.error("Errors occurred during deletion:", errors);
+      }
+
+      res
+        .status(200)
+        .send(
+          `Successfully deleted ${successfulDeletions.length} documents. Errors: ${errors.length}`
+        );
     } catch (error) {
       console.error("Error deleting documents from FaunaDB:", error);
       res.status(500).send("Error resetting data");
